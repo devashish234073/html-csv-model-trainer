@@ -101,7 +101,15 @@
       const fileInput = document.getElementById('fileInput');
       const file = fileInput.files[0];
       const fileContent = await readFileContent(file);
-      console.log(fileContent);
+      const csvData = fileContent.trim().split('\n');
+      const columnNames = csvData[0].split(',');
+      let tr = document.createElement("tr");
+      for(let c in columnNames) {
+    	  let td = document.createElement("td");
+          td.innerText = columnNames[c];
+          tr.appendChild(td);
+      }
+      dataTable.appendChild(tr);
       fileData = $.csv.toObjects(fileContent);
       let cols = [];
       fileData.forEach((row) => {
