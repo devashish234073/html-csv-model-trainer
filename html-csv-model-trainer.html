@@ -1,32 +1,57 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>CSV File Upload and Training Example</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
   <style>
-    table{
+    table {
       border-collapse: collapse;
     }
+
     table td {
       border: 1px solid black;
-      padding:5px 10px;
+      padding: 5px 10px;
     }
-    select{
-      width:100%;
+
+    select {
+      width: 100%;
     }
-    .afterUpload{
+
+    .afterUpload {
       display: none;
+    }
+
+    #gray {
+      background-color: gray;
     }
   </style>
 </head>
+
 <body>
   <table>
-    <tr><td colspan="2"><h1>CSV File Upload and Training</h1></td></tr>
-    <tr><td><input type="file" id="fileInput"></td><td><button onclick="uploadFile()">Upload</button></td></tr>
-    <tr class="afterUpload"><td><label for="inputColumn">Input Column:</label></td><td><select id="inputColumn" onchange="selectColInput()"></select></td></tr>
-    <tr class="afterUpload"><td><label for="outputColumn">Output Column:</label></td><td><select id="outputColumn" onchange="selectColOutput()"></select></td></tr>
-    <tr class="afterUpload"><td id="output"></td><td><button onclick="trainModel()">Train Model</button></td></tr>
+    <tr>
+      <td colspan="2">
+        <h1>CSV File Upload and Training</h1>
+      </td>
+    </tr>
+    <tr>
+      <td><input type="file" id="fileInput"></td>
+      <td><button onclick="uploadFile()">Upload</button></td>
+    </tr>
+    <tr class="afterUpload">
+      <td><label for="inputColumn">Input Column:</label></td>
+      <td><select id="inputColumn" onchange="selectColInput()"></select></td>
+    </tr>
+    <tr class="afterUpload">
+      <td><label for="outputColumn">Output Column:</label></td>
+      <td><select id="outputColumn" onchange="selectColOutput()"></select></td>
+    </tr>
+    <tr class="afterUpload">
+      <td id="output"></td>
+      <td><button onclick="trainModel()">Train Model</button></td>
+    </tr>
   </table>
   <br>
 
@@ -67,24 +92,26 @@
       });
     }
 
-    let antiColor = {"yellow":"pink","pink":"yellow"};
+    let antiColor = { "yellow": "pink", "pink": "yellow" };
 
     function selectColInput() {
-      selectCol(inputColumnSelect.value,"yellow");
+      selectCol(inputColumnSelect.value, "yellow");
     }
     function selectColOutput() {
-      selectCol(outputColumnSelect.value,"pink");
+      selectCol(outputColumnSelect.value, "pink");
     }
 
-    function selectCol(col,color) {
+    function selectCol(col, color) {
       let cols = document.querySelectorAll(".col_");
-      let id = "col_"+col;
-      for(let i in cols) {
-        if(cols[i].getAttribute("id")==id){
-          cols[i].style.backgroundColor = color;
-        } else {
-          if(cols[i].style.backgroundColor!=antiColor[color]) {
-            cols[i].style.backgroundColor = "white";
+      let id = "col_" + col;
+      for (let i in cols) {
+        if (cols[i] && cols[i].getAttribute) {
+          if (cols[i].getAttribute("id") == id) {
+            cols[i].style.backgroundColor = color;
+          } else {
+            if (cols[i].style.backgroundColor != antiColor[color]) {
+              cols[i].style.backgroundColor = "white";
+            }
           }
         }
       }
@@ -104,10 +131,11 @@
       const csvData = fileContent.trim().split('\n');
       const columnNames = csvData[0].split(',');
       let tr = document.createElement("tr");
-      for(let c in columnNames) {
-    	  let td = document.createElement("td");
-          td.innerText = columnNames[c];
-          tr.appendChild(td);
+      tr.setAttribute("id", "gray");
+      for (let c in columnNames) {
+        let td = document.createElement("td");
+        td.innerText = columnNames[c];
+        tr.appendChild(td);
       }
       dataTable.appendChild(tr);
       fileData = $.csv.toObjects(fileContent);
@@ -119,16 +147,22 @@
           let val = row[column];
           let td = document.createElement("td");
           td.innerText = val;
-          td.setAttribute("id","col_"+column);
-          td.setAttribute("class","col_");
+          td.setAttribute("id", "col_" + column);
+          td.setAttribute("class", "col_");
           tr.appendChild(td);
-          if(cols.indexOf(column)==-1) {
+          if (cols.indexOf(column) == -1) {
             cols.push(column);
           }
         });
         dataTable.appendChild(tr);
       });
-      for(let i in cols) {
+      let startVal, endVal;
+      for (let i in cols) {
+        if (i == 0) {
+          startVal = cols[i];
+        } else if (i == cols.length - 1) {
+          endVal = cols[i];
+        }
         let opt1 = document.createElement("option");
         opt1.value = cols[i];
         opt1.innerText = cols[i];
@@ -138,9 +172,15 @@
         inputColumnSelect.appendChild(opt1);
         outputColumnSelect.appendChild(opt2);
       }
+      inputColumnSelect.value = startVal;
+      outputColumnSelect.value = endVal;
+      selectColInput();
+      selectColOutput();
       let afterUploads = document.querySelectorAll(".afterUpload");
-      for(let i in afterUploads) {
-        afterUploads[i].style.display = "table-row";
+      for (let i in afterUploads) {
+        if(afterUploads && afterUploads[i]) {
+          afterUploads[i].style.display = "table-row";
+        }
       }
     }
 
@@ -189,4 +229,5 @@
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
 </body>
+
 </html>
