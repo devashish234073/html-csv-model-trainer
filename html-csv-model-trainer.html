@@ -129,8 +129,8 @@
       trainingData[0] = combinedData;
       console.log(trainingData);
       tfvis.render.linechart(
-          { name: 'All Data', tab: 'Visualization' },
-          { values: trainingData, series: ['Training Data'] }
+        { name: 'All Data', tab: 'Visualization' },
+        { values: trainingData, series: ['All Data'] }
       );
     }
 
@@ -143,60 +143,64 @@
 
     async function uploadFile() {
       const fileInput = document.getElementById('fileInput');
-      const file = fileInput.files[0];
-      const fileContent = await readFileContent(file);
-      const csvData = fileContent.trim().split('\n');
-      const columnNames = csvData[0].split(',');
-      let tr = document.createElement("tr");
-      tr.setAttribute("id", "gray");
-      for (let c in columnNames) {
-        let td = document.createElement("td");
-        td.innerText = columnNames[c];
-        tr.appendChild(td);
-      }
-      dataTable.appendChild(tr);
-      fileData = $.csv.toObjects(fileContent);
-      let cols = [];
-      fileData.forEach((row) => {
+      if (fileInput.value == "") {
+        alert("choose a file first");
+      } else {
+        const file = fileInput.files[0];
+        const fileContent = await readFileContent(file);
+        const csvData = fileContent.trim().split('\n');
+        const columnNames = csvData[0].split(',');
         let tr = document.createElement("tr");
-        console.log("ROW created..");
-        Object.keys(row).forEach((column) => {
-          let val = row[column];
+        tr.setAttribute("id", "gray");
+        for (let c in columnNames) {
           let td = document.createElement("td");
-          td.innerText = val;
-          td.setAttribute("id", "col_" + column);
-          td.setAttribute("class", "col_");
+          td.innerText = columnNames[c];
           tr.appendChild(td);
-          if (cols.indexOf(column) == -1) {
-            cols.push(column);
-          }
-        });
-        dataTable.appendChild(tr);
-      });
-      let startVal, endVal;
-      for (let i in cols) {
-        if (i == 0) {
-          startVal = cols[i];
-        } else if (i == cols.length - 1) {
-          endVal = cols[i];
         }
-        let opt1 = document.createElement("option");
-        opt1.value = cols[i];
-        opt1.innerText = cols[i];
-        let opt2 = document.createElement("option");
-        opt2.value = cols[i];
-        opt2.innerText = cols[i];
-        inputColumnSelect.appendChild(opt1);
-        outputColumnSelect.appendChild(opt2);
-      }
-      inputColumnSelect.value = startVal;
-      outputColumnSelect.value = endVal;
-      selectColInput();
-      selectColOutput();
-      let afterUploads = document.querySelectorAll(".afterUpload");
-      for (let i in afterUploads) {
-        if (afterUploads && afterUploads[i]) {
-          afterUploads[i].style.display = "table-row";
+        dataTable.appendChild(tr);
+        fileData = $.csv.toObjects(fileContent);
+        let cols = [];
+        fileData.forEach((row) => {
+          let tr = document.createElement("tr");
+          console.log("ROW created..");
+          Object.keys(row).forEach((column) => {
+            let val = row[column];
+            let td = document.createElement("td");
+            td.innerText = val;
+            td.setAttribute("id", "col_" + column);
+            td.setAttribute("class", "col_");
+            tr.appendChild(td);
+            if (cols.indexOf(column) == -1) {
+              cols.push(column);
+            }
+          });
+          dataTable.appendChild(tr);
+        });
+        let startVal, endVal;
+        for (let i in cols) {
+          if (i == 0) {
+            startVal = cols[i];
+          } else if (i == cols.length - 1) {
+            endVal = cols[i];
+          }
+          let opt1 = document.createElement("option");
+          opt1.value = cols[i];
+          opt1.innerText = cols[i];
+          let opt2 = document.createElement("option");
+          opt2.value = cols[i];
+          opt2.innerText = cols[i];
+          inputColumnSelect.appendChild(opt1);
+          outputColumnSelect.appendChild(opt2);
+        }
+        inputColumnSelect.value = startVal;
+        outputColumnSelect.value = endVal;
+        selectColInput();
+        selectColOutput();
+        let afterUploads = document.querySelectorAll(".afterUpload");
+        for (let i in afterUploads) {
+          if (afterUploads && afterUploads[i]) {
+            afterUploads[i].style.display = "table-row";
+          }
         }
       }
     }
@@ -230,11 +234,13 @@
         const testingOutputs = outputs.slice([trainingSize, 0], [testingSize, outputs.shape[1]]);
 
         const model = tf.sequential();
+
         model.add(tf.layers.dense({ units: 10, inputShape: [inputs.shape[1]] }));
-        model.add(tf.layers.dense({ units: outputs.shape[1] }));
+        model.add(tf.layers.dense({ units: 10, activation: 'relu' }));
+        model.add(tf.layers.dense({ units: 1 }));
 
         const startTime = performance.now();
-        model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
+        model.compile({ loss: 'meanSquaredError', optimizer: 'adam' });
         const history = await model.fit(trainingInputs, trainingOutputs, { epochs: 100 });
         const loss = history.history.loss;
         console.log(loss);
@@ -251,7 +257,7 @@
           const inputVal = testingInputsData[i];
           const outputVal = testingOutputsData[i];
           const predVal = testingResultsData[i];
-          if(isNaN(predVal)) {
+          if (isNaN(predVal)) {
             nanDataPredicted = true;
           }
           preds.push({ "x": inputVal, "y": predVal });
@@ -270,12 +276,12 @@
           { values: trainingData, series: ['Training Data'] }
         );*/
 
-        if(nanDataPredicted) {
+        if (nanDataPredicted) {
           alert("Error while predicting values for the data..");
         } else {
           tfvis.render.linechart(
-          { name: 'Test Data vs Predicted Data', tab: 'Visualization' },
-          { values: [tests,preds], series: ['Test Data','Predicted Data'] }
+            { name: 'Test Data vs Predicted Data', tab: 'Visualization' },
+            { values: [tests, preds], series: ['Test Data', 'Predicted Data'] }
           );
         }
       } catch (error) {
