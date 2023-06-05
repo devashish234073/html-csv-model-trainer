@@ -4,6 +4,7 @@
 <head>
   <title>CSV File Upload and Training Example</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.7.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
   <style>
     table {
@@ -25,6 +26,8 @@
 
     #gray {
       background-color: gray;
+      color:white;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -186,16 +189,42 @@
 
     // Function to train the model
     async function trainModel() {
+      let count = 0;
+      let dots = ".";
+      let tmr = setInterval(function(){
+        count++;
+        dots+=".";
+        if(count>10) {
+          count = 0;
+          dots = ".";
+        }
+        output.innerText = "Training model"+dots;
+      },100);
       try {
         const data = fileData;
-        const { inputs, outputs } = convertToTensors(data, inputColumnSelect.value, outputColumnSelect.value);
+        const { inputs, outputs, combinedData } = convertToTensors(data, inputColumnSelect.value, outputColumnSelect.value);
         const model = tf.sequential();
         model.add(tf.layers.dense({ units: 10, inputShape: [inputs.shape[1]] }));
         model.add(tf.layers.dense({ units: outputs.shape[1] }));
 
+        const startTime = performance.now();
         model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
-        await model.fit(inputs, outputs, { epochs: 100 });
-        output.innerText = 'Model trained successfully!';
+        const history = await model.fit(inputs, outputs, { epochs: 100 });
+        const loss = history.history.loss;
+        console.log(loss);
+        const endTime = performance.now();
+
+        clearInterval(tmr);
+        output.innerText = `Model trained successfully in ${(endTime-startTime)/1000.0} sec`;
+        let trainingData = [[]];
+        let xs = [];
+        let ys = [];
+        trainingData[0] = combinedData;
+        console.log(trainingData);
+        tfvis.render.linechart(
+          { name: 'Training Data', tab: 'Visualization' },
+          { values: trainingData, series: ['Training Data'] }
+        );
       } catch (error) {
         console.error('Error:', error);
       }
@@ -221,9 +250,14 @@
         outputs.push(output);
       });
 
+      const combinedData = inputs.map((input, index) => {
+        return { "x": input[0], "y": outputs[index][0] };
+      });
+
       return {
         inputs: tf.tensor2d(inputs),
         outputs: tf.tensor2d(outputs),
+        "combinedData": combinedData
       };
     }
   </script>
