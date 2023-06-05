@@ -241,7 +241,11 @@
 
         const startTime = performance.now();
         model.compile({ loss: 'meanSquaredError', optimizer: 'adam' });
-        const history = await model.fit(trainingInputs, trainingOutputs, { epochs: 100 });
+        const history = await model.fit(trainingInputs, trainingOutputs, {
+           epochs: 200,
+           batchSize: 32,
+           verbose:0
+        });
         const loss = history.history.loss;
         console.log(loss);
         const endTime = performance.now();
