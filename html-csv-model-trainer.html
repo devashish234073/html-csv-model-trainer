@@ -26,7 +26,7 @@
 
     #gray {
       background-color: gray;
-      color:white;
+      color: white;
       font-weight: bold;
     }
   </style>
@@ -50,6 +50,10 @@
     <tr class="afterUpload">
       <td><label for="outputColumn">Output Column:</label></td>
       <td><select id="outputColumn" onchange="selectColOutput()"></select></td>
+    </tr>
+    <tr class="afterUpload">
+      <td><label for="trainingDataPercentage">Training Data Percentage:</label></td>
+      <td><input type="text" id="trainingDataPercentage" value="99"></td>
     </tr>
     <tr class="afterUpload">
       <td id="output"></td>
@@ -118,6 +122,16 @@
           }
         }
       }
+      const { inputs, outputs, combinedData } = convertToTensors(fileData, inputColumnSelect.value, outputColumnSelect.value);
+      let trainingData = [[]];
+      let xs = [];
+      let ys = [];
+      trainingData[0] = combinedData;
+      console.log(trainingData);
+      tfvis.render.linechart(
+          { name: 'All Data', tab: 'Visualization' },
+          { values: trainingData, series: ['Training Data'] }
+      );
     }
 
     let dataTable = document.querySelector("#dataTable");
@@ -181,50 +195,89 @@
       selectColOutput();
       let afterUploads = document.querySelectorAll(".afterUpload");
       for (let i in afterUploads) {
-        if(afterUploads && afterUploads[i]) {
+        if (afterUploads && afterUploads[i]) {
           afterUploads[i].style.display = "table-row";
         }
       }
     }
+    let trainingDataPercentage = document.querySelector("#trainingDataPercentage");
+    let locloc;
 
     // Function to train the model
     async function trainModel() {
+      let trainingPercentage = (trainingDataPercentage.value / 100);
       let count = 0;
       let dots = ".";
-      let tmr = setInterval(function(){
+      let tmr = setInterval(function () {
         count++;
-        dots+=".";
-        if(count>10) {
+        dots += ".";
+        if (count > 10) {
           count = 0;
           dots = ".";
         }
-        output.innerText = "Training model"+dots;
-      },100);
+        output.innerText = "Training model" + dots;
+      }, 100);
       try {
         const data = fileData;
         const { inputs, outputs, combinedData } = convertToTensors(data, inputColumnSelect.value, outputColumnSelect.value);
+
+        const trainingSize = Math.floor(inputs.shape[0] * trainingPercentage);
+        const testingSize = inputs.shape[0] - trainingSize;
+
+        const trainingInputs = inputs.slice([0, 0], [trainingSize, inputs.shape[1]]);
+        const trainingOutputs = outputs.slice([0, 0], [trainingSize, outputs.shape[1]]);
+        const testingInputs = inputs.slice([trainingSize, 0], [testingSize, inputs.shape[1]]);
+        const testingOutputs = outputs.slice([trainingSize, 0], [testingSize, outputs.shape[1]]);
+
         const model = tf.sequential();
         model.add(tf.layers.dense({ units: 10, inputShape: [inputs.shape[1]] }));
         model.add(tf.layers.dense({ units: outputs.shape[1] }));
 
         const startTime = performance.now();
         model.compile({ loss: 'meanSquaredError', optimizer: 'sgd' });
-        const history = await model.fit(inputs, outputs, { epochs: 100 });
+        const history = await model.fit(trainingInputs, trainingOutputs, { epochs: 100 });
         const loss = history.history.loss;
         console.log(loss);
         const endTime = performance.now();
 
+        const testingResults = model.predict(testingInputs);
+        let preds = [];
+        let tests = [];
+        const testingInputsData = await testingInputs.data();
+        const testingOutputsData = await testingOutputs.data();
+        const testingResultsData = await testingResults.data();
+        let nanDataPredicted = false;
+        for (let i = 0; i < testingInputsData.length; i++) {
+          const inputVal = testingInputsData[i];
+          const outputVal = testingOutputsData[i];
+          const predVal = testingResultsData[i];
+          if(isNaN(predVal)) {
+            nanDataPredicted = true;
+          }
+          preds.push({ "x": inputVal, "y": predVal });
+          tests.push({ "x": inputVal, "y": outputVal });
+        }
+        console.log("preds", preds);
+        console.log("tests", tests);
+
         clearInterval(tmr);
-        output.innerText = `Model trained successfully in ${(endTime-startTime)/1000.0} sec`;
-        let trainingData = [[]];
-        let xs = [];
-        let ys = [];
+        output.innerText = `Model trained successfully in ${(endTime - startTime) / 1000.0} sec`;
+        /*let trainingData = [[]];
         trainingData[0] = combinedData;
         console.log(trainingData);
         tfvis.render.linechart(
           { name: 'Training Data', tab: 'Visualization' },
           { values: trainingData, series: ['Training Data'] }
-        );
+        );*/
+
+        if(nanDataPredicted) {
+          alert("Error while predicting values for the data..");
+        } else {
+          tfvis.render.linechart(
+          { name: 'Test Data vs Predicted Data', tab: 'Visualization' },
+          { values: [tests,preds], series: ['Test Data','Predicted Data'] }
+          );
+        }
       } catch (error) {
         console.error('Error:', error);
       }
