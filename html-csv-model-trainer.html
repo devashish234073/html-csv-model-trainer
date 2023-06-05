@@ -122,7 +122,17 @@
           }
         }
       }
-      const { inputs, outputs, combinedData } = convertToTensors(fileData, inputColumnSelect.value, outputColumnSelect.value);
+      const { inputs, outputs, combinedData, inHist, outHist } = convertToTensors(fileData, inputColumnSelect.value, outputColumnSelect.value, true);
+      console.log("inHist",inHist);
+      console.log("outHist",outHist);
+      tfvis.render.linechart(
+        { name: 'Input Hist', tab: 'Histograms' },
+        { values: [inHist], series: ['Input Hist'] }
+      );
+      tfvis.render.linechart(
+        { name: 'Output Hist', tab: 'Histograms' },
+        { values: [outHist], series: ['Output Hist'] }
+      );
       let trainingData = [[]];
       let xs = [];
       let ys = [];
@@ -223,7 +233,7 @@
       }, 100);
       try {
         const data = fileData;
-        const { inputs, outputs, combinedData } = convertToTensors(data, inputColumnSelect.value, outputColumnSelect.value);
+        const { inputs, outputs, combinedData } = convertToTensors(data, inputColumnSelect.value, outputColumnSelect.value, false);
 
         const trainingSize = Math.floor(inputs.shape[0] * trainingPercentage);
         const testingSize = inputs.shape[0] - trainingSize;
@@ -293,9 +303,13 @@
       }
     }
 
-    function convertToTensors(data, inputColumn, outputColumn) {
+    function convertToTensors(data, inputColumn, outputColumn, computeHists) {
       const inputs = [];
       const outputs = [];
+      const inputHistRaw = {};
+      const inputHist = [];
+      const outputHistRaw = {};
+      const outputHist = [];
 
       data.forEach((row) => {
         const input = [];
@@ -311,17 +325,41 @@
 
         inputs.push(input);
         outputs.push(output);
+        if(computeHists) {
+          if(inputHistRaw[input[0]]==undefined) {
+          inputHistRaw[input[0]] = 1;
+        } else {
+          inputHistRaw[input[0]] += 1;
+        }
+        if(outputHistRaw[input[0]]==undefined) {
+          outputHistRaw[input[0]] = 1;
+        } else {
+          outputHistRaw[input[0]] += 1;
+        }
+        }
       });
 
       const combinedData = inputs.map((input, index) => {
         return { "x": input[0], "y": outputs[index][0] };
       });
 
-      return {
+      let ret = {
         inputs: tf.tensor2d(inputs),
         outputs: tf.tensor2d(outputs),
         "combinedData": combinedData
       };
+
+      if(computeHists) {
+        for(k in inputHistRaw) {
+          inputHist.push({"x":parseFloat(k),"y":inputHistRaw[k]});
+        }
+        for(k in outputHistRaw) {
+          outputHist.push({"x":parseFloat(k),"y":outputHistRaw[k]});
+        }
+        ret["inHist"] = inputHist;
+        ret["outHist"] = outputHist;
+      }
+      return ret;
     }
   </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.21/jquery.csv.min.js"></script>
