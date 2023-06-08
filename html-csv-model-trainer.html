@@ -57,15 +57,38 @@
     </tr>
     <tr class="afterUpload">
       <td id="output"></td>
-      <td><button onclick="trainModel()">Train Model</button></td>
+      <td><input type="text" id="modelName" placeholder="Enter model name" onkeyup="changeBtnLabel()"><button onclick="trainModel()" id="trainBtn">Train Model</button></td>
     </tr>
+  </table>
+  <br>
+
+  <table id="modelsFromserver">
+    <tr><td>Select Model</td><td><select id="modelsFromServer">__MODELS__</select></td></tr>
+    <tr><td>Comma separated test data</td><td><input type="text" id="commaSeparatedTestData"></td></tr>
+    <tr><td id="modelFromServerOutput"></td><td><button onclick="runTestAgainstSelectedModel()">Test</button></td></tr>
   </table>
   <br>
 
   <table id="dataTable"></table>
 
   <script>
-    // Function to read the file content
+    let modelsFromServer = document.querySelector("#modelsFromServer");
+    let commaSeparatedTestData = document.querySelector("#commaSeparatedTestData");
+    let modelFromServerOutput = document.querySelector("#modelFromServerOutput");
+    function runTestAgainstSelectedModel() {
+      if(modelsFromServer.value=="") {
+        alert("Please choose a model from dropdown, if dropdown is empty please train ans save a model first");
+      } else if(commaSeparatedTestData.value=="") {
+        alert("Please enter comma separated values to test on");
+      } else {
+        let testDataRaw = commaSeparatedTestData.value.split(",");
+        let testDataConverted = [];
+        for(let i in testDataRaw) {
+          testDataConverted.push([parseFloat(testDataRaw[i])]);
+        }
+        getModelFromServerAndPredictFor(modelsFromServer.value,testDataConverted,modelFromServerOutput);
+      }
+    }
     function readFileContent(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -150,6 +173,15 @@
     let fileData;
     const inputColumnSelect = document.getElementById('inputColumn');
     const outputColumnSelect = document.getElementById('outputColumn');
+    let modelNameFld = document.querySelector("#modelName");
+    let changeBtn = document.querySelector("#trainBtn");
+    function changeBtnLabel() {
+      if(modelNameFld.value!="") {
+        changeBtn.innerText = "Train Model and Save";
+      } else {
+        changeBtn.innerText = "Train Model";
+      }
+    }
 
     async function uploadFile() {
       const fileInput = document.getElementById('fileInput');
@@ -229,7 +261,7 @@
           count = 0;
           dots = ".";
         }
-        output.innerText = "Training model" + dots;
+        output.innerText = "Training model " + dots;
       }, 100);
       try {
         const data = fileData;
@@ -281,8 +313,9 @@
         }
         console.log("preds", preds);
         console.log("tests", tests);
-        sendModelToBackend(model,"heelomodel");
-        getModelFromServerAndPredictFor([[0],[1],[2],[3]]);
+        if(modelNameFld.value!="") {
+          sendModelToBackend(model,modelNameFld.value);
+        }
         /*let trainingData = [[]];
         trainingData[0] = combinedData;
         console.log(trainingData);
@@ -310,12 +343,13 @@
         { method: 'PUT', headers: { 'header_key_1': 'header_value_1' } }));
     }
 
-    async function getModelFromServerAndPredictFor(vals) {
-      tf.loadLayersModel(tf.io.browserHTTPRequest("http://localhost:8888/api/getModel/model.json"))
+    async function getModelFromServerAndPredictFor(modelName,vals,outputField) {
+      tf.loadLayersModel(tf.io.browserHTTPRequest("http://localhost:8888/api/getModel/"+modelName+"/model.json"))
           .then(loadedModel => {
             const inputData = tf.tensor2d(vals);
             const predictions = loadedModel.predict(inputData);
             predictions.print();
+            outputField.innerText = JSON.stringify(predictions.arraySync());
           })
           .catch(error => {
             console.log(error);
