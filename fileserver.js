@@ -3,10 +3,13 @@ var fs = require("fs");
 const querystring = require('querystring');
 const multiparty = require('multiparty');
 const path = require('path');
+const url = require('url');
 
 var server = http.createServer((req,res)=>{
-	if(req.url=="/api/sendModel") {
+	if(req.url.indexOf("/api/sendModel")==0) {
 		const form = new multiparty.Form();
+		const urlObj = url.parse(req.url, true);
+		console.log(urlObj.query.modelName);
 		form.parse(req, (err, fields, files) => {
 			if (err) {
 			  console.error('Error parsing form:', err);
