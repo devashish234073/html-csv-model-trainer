@@ -1,5 +1,7 @@
 # html-csv-model-trainer
 
+setup the application with npm install
+
 to start the application run node fileserver.js
 
 this will serve the html file over http, rest everything needs to be done from the UI, below is a screenshot showing the UI after training is complete , in the graph you can see now there is also a histogram tab
