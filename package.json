@@ -1,0 +1,26 @@
+{
+  "name": "html-csv-model-trainer",
+  "version": "1.0.0",
+  "description": "to start the application run node fileserver.js",
+  "main": "fileserver.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devashish234073/html-csv-model-trainer.git"
+  },
+  "keywords": [
+    "html-csv-model-trainer"
+  ],
+  "author": "Devashish Priyadarshi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/devashish234073/html-csv-model-trainer/issues"
+  },
+  "homepage": "https://github.com/devashish234073/html-csv-model-trainer#readme",
+  "dependencies": {
+    "multiparty": "^4.2.3",
+    "save": "^2.9.0"
+  }
+}
