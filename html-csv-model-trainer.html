@@ -123,8 +123,8 @@
         }
       }
       const { inputs, outputs, combinedData, inHist, outHist } = convertToTensors(fileData, inputColumnSelect.value, outputColumnSelect.value, true);
-      console.log("inHist",inHist);
-      console.log("outHist",outHist);
+      console.log("inHist", inHist);
+      console.log("outHist", outHist);
       tfvis.render.linechart(
         { name: 'Input Hist', tab: 'Histograms' },
         { values: [inHist], series: ['Input Hist'] }
@@ -252,15 +252,17 @@
         const startTime = performance.now();
         model.compile({ loss: 'meanSquaredError', optimizer: 'adam' });
         const history = await model.fit(trainingInputs, trainingOutputs, {
-           epochs: 200,
-           batchSize: 32,
-           verbose:0
+          epochs: 200,
+          batchSize: 32,
+          verbose: 0
         });
         const loss = history.history.loss;
         console.log(loss);
-        const endTime = performance.now();
-
         const testingResults = model.predict(testingInputs);
+        const endTime = performance.now();
+        clearInterval(tmr);
+        output.innerText = `Model trained successfully in ${(endTime - startTime) / 1000.0} sec`;
+
         let preds = [];
         let tests = [];
         const testingInputsData = await testingInputs.data();
@@ -279,9 +281,8 @@
         }
         console.log("preds", preds);
         console.log("tests", tests);
-
-        clearInterval(tmr);
-        output.innerText = `Model trained successfully in ${(endTime - startTime) / 1000.0} sec`;
+        sendModelToBackend(model);
+        getModelFromServerAndPredictFor([[0],[1],[2],[3]]);
         /*let trainingData = [[]];
         trainingData[0] = combinedData;
         console.log(trainingData);
@@ -301,6 +302,27 @@
       } catch (error) {
         console.error('Error:', error);
       }
+    }
+
+    async function sendModelToBackend(model) {
+      await model.save(tf.io.browserHTTPRequest(
+        'http://localhost:8888/api/sendModela',
+        { method: 'PUT', headers: { 'header_key_1': 'header_value_1' } }));
+    }
+
+    async function getModelFromServerAndPredictFor(vals) {
+      tf.loadLayersModel(tf.io.browserHTTPRequest("http://localhost:8888/api/getModel/model.json"))
+          .then(loadedModel => {
+            const inputData = tf.tensor2d(vals);
+            const predictions = loadedModel.predict(inputData);
+            predictions.print();
+          })
+          .catch(error => {
+            console.log(error);
+          });
+      /*const modelFromServer = await tf.loadLayersModel('http://localhost:8888/api/getModel/hello.json');
+      const predictedResults = modelFromServer.predict(tf.tensor2d(vals));
+      console.log("predictedResults from server",predictedResults);*/
     }
 
     function convertToTensors(data, inputColumn, outputColumn, computeHists) {
@@ -325,17 +347,17 @@
 
         inputs.push(input);
         outputs.push(output);
-        if(computeHists) {
-          if(inputHistRaw[input[0]]==undefined) {
-          inputHistRaw[input[0]] = 1;
-        } else {
-          inputHistRaw[input[0]] += 1;
-        }
-        if(outputHistRaw[input[0]]==undefined) {
-          outputHistRaw[input[0]] = 1;
-        } else {
-          outputHistRaw[input[0]] += 1;
-        }
+        if (computeHists) {
+          if (inputHistRaw[input[0]] == undefined) {
+            inputHistRaw[input[0]] = 1;
+          } else {
+            inputHistRaw[input[0]] += 1;
+          }
+          if (outputHistRaw[input[0]] == undefined) {
+            outputHistRaw[input[0]] = 1;
+          } else {
+            outputHistRaw[input[0]] += 1;
+          }
         }
       });
 
@@ -349,12 +371,12 @@
         "combinedData": combinedData
       };
 
-      if(computeHists) {
-        for(k in inputHistRaw) {
-          inputHist.push({"x":parseFloat(k),"y":inputHistRaw[k]});
+      if (computeHists) {
+        for (k in inputHistRaw) {
+          inputHist.push({ "x": parseFloat(k), "y": inputHistRaw[k] });
         }
-        for(k in outputHistRaw) {
-          outputHist.push({"x":parseFloat(k),"y":outputHistRaw[k]});
+        for (k in outputHistRaw) {
+          outputHist.push({ "x": parseFloat(k), "y": outputHistRaw[k] });
         }
         ret["inHist"] = inputHist;
         ret["outHist"] = outputHist;
