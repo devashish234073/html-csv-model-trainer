@@ -9,7 +9,7 @@ var server = http.createServer((req,res)=>{
 	if(req.url.indexOf("/api/sendModel")==0) {
 		const form = new multiparty.Form();
 		const urlObj = url.parse(req.url, true);
-		let modelName = urlObj.query.modelName;
+		let modelName = String(urlObj.query.modelName).split(" ").join("_");
 		form.parse(req, (err, fields, files) => {
 			if (err) {
 			  console.error('Error parsing form:', err);
